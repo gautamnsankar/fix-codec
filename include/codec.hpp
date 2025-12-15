@@ -1,55 +1,45 @@
 #include <unordered_map>
 #include <iostream>
-#include <cstring>
+#include <cassert>
 #include <vector>
 
-class FixDecoder {
-    private:
-    std::vector<std::string> split(std::string target, char delimiter) {
-        std::string accumulated_string = "";
-        std::vector<std::string> result;
+// I just defined it manually rather than importing a whole library for it
+typedef unsigned char uint8_t;
 
-        for (int i = 0; i < target.size() + 1; ++i) {
-            if (target[i] == delimiter || i == target.size()) {
-                result.push_back(accumulated_string);
-                accumulated_string = "";
-                continue;
-            }
+std::vector<std::string> split_string_(std::string target, char delimiter) {
+    std::string accumulated_string = "";
+    std::vector<std::string> result;
 
-            accumulated_string += target[i];
+    for (int i = 0; i < target.size() + 1; ++i) {
+        char current_character = target[i];
+
+        if (current_character == delimiter || i == target.size()) {
+            result.push_back(accumulated_string);
+            accumulated_string.clear();
+            continue;
         }
 
-        return result;
+        accumulated_string += current_character;
     }
 
-    const char* message;
+    return result;
+}
 
-    public:
-    FixDecoder(const char* _message) {
-        this->message = _message;
-    }
+std::unordered_map<uint8_t, std::string> decode_fix(const char* message) {
+    assert(message != nullptr);
 
-    std::unordered_map<u_int8_t, std::string> decode() {
-        std::unordered_map<u_int8_t, std::string> result;
-        std::string accumulated_string = "";
+    std::vector<std::string> split_fix_message = split_string_(message, '\001');
+    std::unordered_map<uint8_t, std::string> result;
 
-        for (size_t i = 0; i < strlen(message); ++i) {
-            char current_character = message[i];
+    for (int i = 0; i < split_fix_message.size(); ++i) {
+        std::vector<std::string> split_kv_pair = split_string_(split_fix_message[i], '=');
 
-            if (current_character == '\x01') {
-                std::vector<std::string> split_string = split(accumulated_string, '=');
-                std::string key_string = split_string[0];
-                std::string value_string = split_string[1];
-
-                result.insert(std::pair<u_int8_t, std::string>((u_int8_t) std::stoi(key_string), value_string));
-
-                accumulated_string = "";
-                continue;
-            }
-
-            accumulated_string += current_character;
+        if (split_kv_pair[0] == "") {
+            continue; // theres probably a better way to do this
         }
 
-        return result;
+        result.insert(std::pair<uint8_t, std::string>((uint8_t) std::stoi(split_kv_pair[0]), split_kv_pair[1]));
     }
-};
+
+    return result;
+}
